@@ -1,4 +1,7 @@
 .venv/
+data/
 source/__pycache__/
+
+output/
 
 The Glow Pt.2
