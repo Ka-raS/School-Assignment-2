@@ -1,3 +1,8 @@
 from . import program
 
-program.run()
+
+def main() -> None:
+    program.run()
+
+if __name__ == '__main__':
+    main()

@@ -1,7 +1,9 @@
 .venv/
 data/
 source/__pycache__/
-
 output/
+
+test.py
+test.ipynb
 
 The Glow Pt.2

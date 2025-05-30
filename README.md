@@ -9,9 +9,11 @@ Outputs directories are displayed on terminal. Total runtime is way longer than 
 
 ## Dependencies
 - [**python 3.10.0**](https://www.python.org/downloads/release/python-3100/)
-- [**torch**](https://pypi.org/project/scikit-learn/), [**torchvision**](https://pypi.org/project/scikit-learn/) - Building and Training/Testing Networks
-- [**skorch**](https://pypi.org/project/skorch/), [**scikit-learn**](https://pypi.org/project/scikit-learn/) - Hyper Parameters Tuning
-- [**matplotlib**](https://pypi.org/project/matplotlib/) - Plotting Graphs
+- [**torch**](https://pypi.org/project/scikit-learn/)
+- [**torchvision**](https://pypi.org/project/scikit-learn/)
+- [**skorch**](https://pypi.org/project/skorch/)
+- [**scikit-learn**](https://pypi.org/project/scikit-learn/)
+- [**matplotlib**](https://pypi.org/project/matplotlib/)
 
 ## Installation
 1. Clone Repo:

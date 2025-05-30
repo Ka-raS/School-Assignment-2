@@ -1,28 +1,24 @@
-import multiprocessing
 import pathlib
+import multiprocessing
 
 import torch
 
 
 ROOT_DIR = pathlib.Path(__file__).parents[1]
 DATA_DIR = ROOT_DIR / 'data'
-OUTPUT_DIR = ROOT_DIR / 'output'
-MODELS_DIR = OUTPUT_DIR / 'models'
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-MODELS_DIR.mkdir(parents=True, exist_ok=True)
+DATA_ANALYSIS_DIR = ROOT_DIR / 'output/data-analysis'
+PARAMS_TUNING_DIR = ROOT_DIR / 'output/params-tuning'
+TRAIN_TEST_DIR = ROOT_DIR / 'output/train-test'
 
-VALIDATE_SIZE = 10_000 / 50_000
-CIFAR10_NORM_MEAN = (0.49139968, 0.48215827, 0.44653124)
-CIFAR10_NORM_STD = (0.24703233, 0.24348505, 0.26158768)
+SEED = 37
+CPU_CORES = multiprocessing.cpu_count() - 1
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+LOG_INTERVAL_TRAIN = 20
+VALIDATE_SIZE = 0.2
 EPOCHS = 10
-LOG_INTERVAL = 10
-
-# LEARNING_RATE = 0.001
-# BETAS = (0.9, 0.999)
-# EPSILON = 1e-8
-# WEIGHT_DECAY = 0.01
-
-NUM_WORKERS = multiprocessing.cpu_count() - 1
-torch.set_num_threads(torch.get_num_threads() - 1)
-DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+BATCH_SIZE_TEST = 1000
+BATCH_SIZE_TRAIN = [32, 64, 128]
+LEARNING_RATE = [0.001, 0.001, 0.1]
+MOMENTUM = [0.9, 0.95]
+WEIGHT_DECAY = [0.0001, 0.0005]

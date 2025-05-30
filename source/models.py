@@ -1,6 +1,5 @@
-from torch import nn
-from torch import Tensor
-from torch.utils.data import Subset, DataLoader
+from torch import nn, Tensor
+from torch.utils.data import Subset
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
 from sklearn.model_selection import train_test_split
@@ -8,26 +7,7 @@ from sklearn.model_selection import train_test_split
 from . import configs
 
 
-class CIFAR10_Loader:
-    __slots__ = ['train', 'validate', 'test']
-
-    def __init__(self):
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(configs.CIFAR10_MEAN, configs.CIFAR10_STD)
-        ])
-        cifar10_train = CIFAR10(configs.DATA_DIR, train=True, download=True, transform=transforms.ToTensor())
-        train_indices, validate_indices = train_test_split(
-            len(cifar10_train),
-            test_size=configs.VALIDATE_SIZE,
-            stratify=cifar10_train.targets,
-            random_state=37
-        )
-        self.train = DataLoader(Subset(cifar10_train, train_indices))
-        self.validate = DataLoader(Subset(cifar10_train, validate_indices))
-        self.test = DataLoader(CIFAR10(configs.DATA_DIR, train=False, download=True, transform=transform))
-
-class MultiLayerPerceptron(nn.Module): 
+class MLP(nn.Module): 
     def __init__(self):
         super().__init__()
         self.model = nn.Sequential(
@@ -42,7 +22,7 @@ class MultiLayerPerceptron(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         return self.model(x)
 
-class ConvolutionalNeuralNetwork(nn.Module):
+class CNN(nn.Module):
     def __init__(self):
         super().__init__()
         self.model = nn.Sequential(             # input: 3 * 32 * 32
@@ -70,3 +50,25 @@ class ConvolutionalNeuralNetwork(nn.Module):
     
     def forward(self, x: Tensor) -> Tensor:
         return self.model(x)
+    
+class CIFAR10_Sets:
+    __slots__ = ['train', 'test']
+
+    def __init__(self):
+        self.train = CIFAR10(configs.DATA_DIR, train=True, download=True)
+        self.test = CIFAR10(configs.DATA_DIR, train=False, download=True)
+    
+    def transform(self, mean: list[float], std: list[float]) -> None:
+        self.train.transform = self.test.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
+
+    def train_validate_split(self, validate_size: float) -> tuple[Subset, Subset]:
+        train_indices, validate_indices = train_test_split(
+            range(len(self.train)),
+            test_size=validate_size,
+            stratify=self.train.targets,
+            random_state=37
+        )
+        return Subset(self.train, train_indices), Subset(self.train, validate_indices)
