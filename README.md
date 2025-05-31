@@ -9,11 +9,9 @@ Outputs directories are displayed on terminal. Total runtime is way longer than 
 
 ## Dependencies
 - [**python 3.10.0**](https://www.python.org/downloads/release/python-3100/)
-- [**torch**](https://pypi.org/project/scikit-learn/)
-- [**torchvision**](https://pypi.org/project/scikit-learn/)
-- [**skorch**](https://pypi.org/project/skorch/)
-- [**scikit-learn**](https://pypi.org/project/scikit-learn/)
-- [**matplotlib**](https://pypi.org/project/matplotlib/)
+- [**torch**](https://pypi.org/project/torch/), [**torchvision**](https://pypi.org/project/torchvision/) - Build, Train/Validate/Test Models
+- [**scikit-learn**](https://pypi.org/project/scikit-learn/) - Helper Tools
+- [**matplotlib**](https://pypi.org/project/matplotlib/) - Plot Graphs
 
 ## Installation
 1. Clone Repo:
@@ -29,7 +27,7 @@ Outputs directories are displayed on terminal. Total runtime is way longer than 
 
     Or
     ```bash
-    pip3 install torch torchvision skorch scikit-learn matplotlib
+    pip3 install torch torchvision scikit-learn matplotlib
     ```
 
 3. Run Program:

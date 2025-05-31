@@ -1,75 +1,73 @@
-import csv
 import random
 
-import numpy as np
 import torch
+import numpy as np
+import matplotlib.pyplot as plt
 from torch import nn
+from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import CIFAR10
 
-from . import (
-    configs,
-    core,
-    models
-)
+# from . import configs, core, models
+import configs, core, models
 
 
 def prepare() -> None:
-    configs.DATA_DIR.mkdir(parents=True, exist_ok=True)
-    configs.DATA_ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
-    configs.PARAMS_TUNING_DIR.mkdir(parents=True, exist_ok=True)
-    configs.TRAIN_TEST_DIR.mkdir(parents=True, exist_ok=True)
+    configs.DATA_DIR.mkdir(exist_ok=True)
+    configs.OUTPUT_DIR.mkdir(exist_ok=True)
 
     random.seed(configs.SEED)
     np.random.seed(configs.SEED)
     torch.manual_seed(configs.SEED)
 
-def data_analysis(trainset: CIFAR10) -> tuple[list, list]:
-    images = core.plot_25_images(trainset)
-    hists = core.rgb_channels_hists(trainset)
-    normalized_mean, normalized_std, stats_csv = core.rgb_mean_std(trainset)
-    
-    images_dir = configs.DATA_ANALYSIS_DIR / 'cifar10-images.pdf'
-    hists_dir = configs.DATA_ANALYSIS_DIR / 'rgb-hists.pdf'
-    stats_csv_dir = configs.DATA_ANALYSIS_DIR / 'rgb-mean-std.csv'
-
+def data_analysis(train_set: Subset[CIFAR10]) -> tuple[np.ndarray, np.ndarray]:
+    images = core.plot_images_example(train_set)
+    images_dir = configs.OUTPUT_DIR / 'cifar10-images.pdf'
     images.savefig(images_dir)
-    hists.savefig(hists_dir)
+    print(images_dir)
+
+    rgb_hists = core.rgb_channels_hists(train_set)
+    rgb_hists_dir = configs.OUTPUT_DIR / 'rgb-hists.pdf'
+    rgb_hists.savefig(rgb_hists_dir)
+    print(rgb_hists_dir)
+    
+    mean, std, stats_csv = core.rgb_mean_std(train_set)
+    stats_csv_dir = configs.OUTPUT_DIR / 'rgb-mean-std.csv'
     with open(stats_csv_dir, 'w', newline='') as file:
         file.write(stats_csv.read())
-
-    print(images_dir)
-    print(hists_dir)
     print(stats_csv_dir)
 
-    return normalized_mean, normalized_std
+    plt.close('all')
+    return mean, std
 
-def hyper_parameters_tuning(cls: type[nn.Module], trainset: CIFAR10) -> dict[str, int | float]:
-    gs = core.grid_search_parameters(cls, trainset)
-    csv_dir = configs.PARAMS_TUNING_DIR / f'{cls.__name__}-grid-search.csv'
+def train_validate_test(net_class: type[nn.Module], cifar10: core.CIFAR10Helper) -> None:
+    name = net_class.__name__.lower()
+    trainer = core.Trainer(net_class, cifar10)
 
-    with open(csv_dir, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(gs.cv_results_.keys())
-        writer.writerows(np.array(list(gs.cv_results_.values())).T)
+    learning_curve_plot = trainer.train()
+    learning_curve_dir = configs.OUTPUT_DIR / f'{name}-learning-curve.pdf'
+    learning_curve_plot.savefig(learning_curve_dir)
+    print(learning_curve_dir)
 
-    print(csv_dir)
-    return gs.best_params_
+    test_result_plot = trainer.test()
+    test_result_dir = configs.OUTPUT_DIR / f'{name}-test-result.pdf'
+    test_result_plot.savefig(test_result_dir)
+    print(test_result_dir)
 
-def train_test_model(cls: type[nn.Module], params: dict[str, int | float], cifar10: models.CIFAR10_Sets) -> None:
-    
+    model_dir = configs.OUTPUT_DIR / f'{name}-model.pth'
+    torch.save(trainer.net, model_dir)
+    print(model_dir)
+
+    plt.close('all')
 
 def run() -> None:
     prepare()
 
     print('Data Analysis:')
-    cifar10 = models.CIFAR10_Sets()
-    normalized_mean, normalized_std = data_analysis(cifar10.train)
-    cifar10.transform(normalized_mean, normalized_std)
-
-    print('\Hyper Parameters Tuning:')
-    mlp_params = hyper_parameters_tuning(models.MLP, cifar10.train)
-    cnn_params = hyper_parameters_tuning(models.CNN, cifar10.train)
-
-    print('\nTrain And Test Models:')
-    train_test_model(models.MLP, mlp_params, cifar10)
-    train_test_model(models.CNN, cnn_params, cifar10)
+    cifar10 = core.CIFAR10Helper()
+    mean, std = data_analysis(cifar10.train_set)
+    cifar10.normalize(mean, std)
+ 
+    print('\nTrain / Validate / Test:')
+    cifar10.make_loaders()
+    train_validate_test(models.MLP, cifar10)
+    train_validate_test(models.CNN, cifar10)

@@ -1,4 +1,5 @@
-from . import program
+# from . import program
+import program
 
 
 def main() -> None:
