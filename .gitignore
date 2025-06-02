@@ -1,7 +1,17 @@
 .venv/
 data/
 source/__pycache__/
+
 output/
+report/report.pdf
+
+
+report/report.aux
+report/report.fdb_latexmk
+report/report.fls
+report/report.log
+report/report.synctex.gz
+report/report.toc
 
 test.py
 test.ipynb

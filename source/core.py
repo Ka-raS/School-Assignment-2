@@ -1,38 +1,46 @@
 import io
 import csv
+import multiprocessing
 
+import torch 
 import numpy as np
 import matplotlib.pyplot as plt
-from torch import nn, optim
+from torch import nn
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import train_test_split
 
-# from . import configs
-import configs
 
+EPOCHS = 20
+LOG_INTERVAL = 25
+BATCH_SIZE_TRAIN = 64
+BATCH_SIZE_TEST = 1000
+VALIDATION_SIZE = 0.2
+CPU_CORES = multiprocessing.cpu_count() - 1
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class CIFAR10Helper:
     __slots__ = (
-        'train_set', 'validation_set', 'test_set', '_train_set'
-        'train_loader', 'validation_loader', 'test_loader'    
+        'train_set', 'validation_set', 'test_set', '_train_set',
+        'train_loader', 'validation_loader', 'test_loader'
     )
 
-    def __init__(self):
-        self._train_set = CIFAR10(configs.DATA_DIR, train=True, download=True, transform=None)
-        self.test_set = CIFAR10(configs.DATA_DIR, train=False, download=True, transform=None)
+    def __init__(self, root):
+        self.train_loader = self.validation_loader = self.test_loader = None
+
+        self._train_set = CIFAR10(root, train=True, download=True, transform=None)
+        self.test_set = CIFAR10(root, train=False, download=True, transform=None)
 
         train_idx, validate_idx = train_test_split(
             np.arange(len(self._train_set)),
-            test_size=configs.VALIDATION_SIZE,
+            test_size=VALIDATION_SIZE,
             stratify=self._train_set.targets,
-            random_state=configs.SEED,
+            random_state=37,
         )
         self.train_set = Subset(self._train_set, train_idx)
         self.validation_set = Subset(self._train_set, validate_idx)
-
-        self.train_loader, self.validation_loader, self.test_loader = None
     
     def normalize(self, mean, std) -> None:
         # pytorch lazy implement 
@@ -44,31 +52,25 @@ class CIFAR10Helper:
     def make_loaders(self) -> None:
         self.train_loader, self.validation_loader, self.test_loader = [
             DataLoader(
-                dataset, 
-                batch_size, 
-                shuffle, 
-                num_workers=configs.CPU_CORES, 
-                pin_memory_device=configs.DEVICE
+                dataset,
+                batch_size,
+                shuffle,
+                num_workers=CPU_CORES,
+                pin_memory=(DEVICE.type == 'cuda')
             )
             for dataset, batch_size, shuffle in [
-                (self.train_set, configs.BATCH_SIZE_TRAIN, True),
-                (self.validation_set, configs.BATCH_SIZE_TEST, False),
-                (self.test_set, configs.BATCH_SIZE_TEST, False)
+                (self.train_set, BATCH_SIZE_TRAIN, True),
+                (self.validation_set, BATCH_SIZE_TEST, False),
+                (self.test_set, BATCH_SIZE_TEST, False)
             ]
         ]
 
 class Trainer:
     def __init__(self, net_class: type[nn.Module], cifar10: CIFAR10Helper):
-        self.net = net_class().to(configs.DEVICE)
-
-        self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(
-            self.net.parameters(),
-            lr=configs.LEARNING_RATE,
-            momentum=configs.MOMENTUM,
-            weight_decay=configs.WEIGHT_DECAY
-        )
         self.cifar10 = cifar10
+        self.net = net_class().to(DEVICE)
+        self.criterion = nn.CrossEntropyLoss()
+        self.optimizer = net_class.OPTIMIZER(self.net.parameters(), **net_class.OPTIMIZER_PARAMS)
 
     def train(self) -> plt.Figure:
         """return learning curve plot"""
@@ -78,8 +80,8 @@ class Trainer:
         validation_losses = []
         validation_accuracies = []
 
-        for epoch in range(configs.EPOCHS):
-            train_loss, train_accuracy = self._train(self.cifar10.train_loader)
+        for epoch in range(1, EPOCHS + 1):
+            train_loss, train_accuracy = self._train(self.cifar10.train_loader, epoch)
             validation_loss, validation_accuracy = self._test(self.cifar10.validation_loader)
 
             train_losses.extend(train_loss)
@@ -88,38 +90,112 @@ class Trainer:
             validation_accuracies.append(validation_accuracy)
 
         fig, axes = plt.subplots(1, 2, figsize=(16, 9))
-        values = [
+        tuples = [
             ('Loss', train_losses, validation_losses),
             ('Accuracy', train_accuracies, validation_accuracies)
         ]
+        x_train = np.arange(
+            LOG_INTERVAL, 
+            len(train_losses) * LOG_INTERVAL + 1, 
+            LOG_INTERVAL
+        )
+        x_validation = np.linspace(
+            LOG_INTERVAL, 
+            x_train[-1], 
+            len(validation_losses)
+        )
 
-        for ax, (name, trains, validations) in zip(axes, values):
+        for ax, (name, y_train, y_validation) in zip(axes, tuples):
             ax: plt.Axes
-            ax.plot(trains, color='blue', label='Train')
-            ax.plot(validations, color='red', label='Validation')
+            ax.plot(x_train, y_train, color='blue', label='Train')
+            ax.plot(x_validation, y_validation, color='red', label='Validation')
             ax.set_title(f'{name} Curve')
             ax.set_xlabel('Batches Trained')
             ax.set_ylabel(name)
+            ax.legend()
 
         fig.tight_layout()
         return fig
 
     def test(self) -> plt.Figure:
-        """"plot: loss, accuracy, confusion matrix"""
-        pass
+        """"return confusion matrix plot"""
 
-    def _train(self, loader) -> tuple[list[float], list[float]]: 
-        """loss, accuracy per configs.LOG_INTERVAL"""
-        self.net.train()
+        dataset = self.cifar10.test_set
+        loader = self.cifar10.test_loader
+        loss, accuracy, predicts = self._test(loader, return_predicts=True)
+
+        plt.figure(figsize=(16, 9))
+        ConfusionMatrixDisplay(
+            confusion_matrix(dataset.targets, predicts),
+            display_labels=dataset.classes
+        ).plot(ax=plt.gca(), cmap='Blues')
         
-    def _test(self, loader) -> tuple[float, float]: 
-        """loss, accuracy"""
+        plt.title(f'Confusion Matrix (Loss: {loss:.4f}, Accuracy: {accuracy:.4f})')
+        plt.tight_layout()
+        return plt.gcf()
+
+    def _train(self, loader: DataLoader, curr_epoch: int) -> tuple[list[float], list[float]]: 
+        """return losses, accuracies per LOG_INTERVAL batches"""
+        
+        self.net.train()
+        losses = []
+        accuracies = []
+        running_loss = corrects = total = 0
+
+        for batch, (images, targets) in enumerate(loader, start=1):
+            print(f'Training: Epoch {curr_epoch}/{EPOCHS}, Batch {batch}/{len(loader)}   ', end='\r')
+            images = images.to(DEVICE)
+            targets = targets.to(DEVICE)
+
+            self.optimizer.zero_grad()
+            predicts = self.net(images)
+            loss = self.criterion(predicts, targets)
+            loss.backward()
+            self.optimizer.step()
+
+            running_loss += loss
+            corrects += (predicts.max(1)[1] == targets).sum()
+            total += len(targets)
+
+            if batch % LOG_INTERVAL == 0:
+                losses.append(running_loss.item() / LOG_INTERVAL)
+                accuracies.append(corrects.item() / total)
+                running_loss = corrects = total = 0
+        
+        if curr_epoch == EPOCHS:
+            print(f'Training: Epoch {EPOCHS}/{EPOCHS} - Done        ', end='\r')
+        return losses, accuracies
+        
+    def _test(self, loader: DataLoader, return_predicts=False) -> tuple[float, float, list[int] | None]: 
+        """return loss(Tensor), accuracy, optional predicts"""
+
         self.net.eval()
+        running_loss = corrects = 0
+        if return_predicts:
+            predictions = []
+
+        with torch.no_grad():
+            for images, targets in loader:
+                images = images.to(DEVICE)
+                targets = targets.to(DEVICE)
+
+                predicts = self.net(images)
+                running_loss += self.criterion(predicts, targets)
+                predicts = predicts.max(1)[1]
+                corrects += (predicts == targets).sum()
+                if return_predicts:
+                    predictions.append(predicts)
+
+        loss = running_loss.item() / len(loader)
+        accuracy = corrects.item() / len(loader.dataset)
+
+        if return_predicts:
+            return loss, accuracy, torch.cat(predictions).tolist()
+        return loss, accuracy
 
 def plot_images_example(train_set: Subset[CIFAR10]) -> plt.Figure:
     """10x10 plot, each column is a class"""
 
-    classes = train_set.dataset.classes
     rows = [0] * 10
     columns_full = 0
     fig, axes = plt.subplots(10, 10, figsize=(9, 9))
@@ -132,7 +208,7 @@ def plot_images_example(train_set: Subset[CIFAR10]) -> plt.Figure:
         ax.imshow(image)
         ax.axis('off')
         if rows[target] == 0:
-            ax.set_title(classes[target])
+            ax.set_title(train_set.dataset.classes[target])
 
         rows[target] += 1
         if rows[target] == 10:
@@ -165,8 +241,8 @@ def rgb_mean_std(train_set: Subset[CIFAR10]) -> tuple[np.ndarray, np.ndarray, io
     data = train_set.dataset.data[train_set.indices]    # (40_000, 32, 32, 3)
     mean = np.mean(data, axis=(0,1,2))
     std = np.std(data, axis=(0,1,2))
-    normalized_mean = mean / 256
-    normalized_std = std / 256
+    normalized_mean = mean / 255
+    normalized_std = std / 255
 
     csv_file = io.StringIO(newline='')
     writer = csv.writer(csv_file)
@@ -180,3 +256,6 @@ def rgb_mean_std(train_set: Subset[CIFAR10]) -> tuple[np.ndarray, np.ndarray, io
 
     csv_file.seek(0)
     return normalized_mean, normalized_std, csv_file
+
+
+# code be inherently trash and functionally garbage

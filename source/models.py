@@ -1,22 +1,46 @@
-from torch import nn, Tensor
+from torch import nn, optim, Tensor
 
-class MLP(nn.Module): 
+
+class MLP(nn.Module):
+    OPTIMIZER = optim.Adam
+    OPTIMIZER_PARAMS = {
+        'lr': 0.001,
+        'weight_decay': 1e-6
+    }
+
     def __init__(self):
         super().__init__()
-        relu = nn.ReLU()        
-        self.__model = nn.Sequential(       # (_, 3, 32, 32)
-            nn.Flatten(),                   # (_, 3 * 32 * 32)
-            nn.Linear(3 * 32 * 32, 512),    # (_, 512)
+
+        relu = nn.ReLU()
+        dropout = nn.Dropout(0.2)
+
+        self.__model = nn.Sequential(           # (_, 3, 32, 32)
+            nn.Flatten(),                       # (_, 3 * 32 * 32)
+
+            nn.Linear(3 * 32 * 32, 512),        # (_, 512)
+            nn.BatchNorm1d(512),
             relu,
-            nn.Linear(512, 256),            # (_, 256)
+            dropout,
+
+            nn.Linear(512, 256),                # (_, 256)
+            nn.BatchNorm1d(256),
             relu,
-            nn.Linear(256, 10)              # (_, 10)
+            dropout,
+
+            nn.Linear(256, 10)                  # (_, 10)
         )
     
     def forward(self, x: Tensor) -> Tensor:
         return self.__model(x)
 
 class CNN(nn.Module):
+    OPTIMIZER = optim.SGD
+    OPTIMIZER_PARAMS = {
+        'lr': 0.01,
+        'momentum': 0.9,
+        'weight_decay': 1e-6
+    }
+
     def __init__(self):
         super().__init__()
 
@@ -24,7 +48,7 @@ class CNN(nn.Module):
         maxpool = nn.MaxPool2d(2, stride=2)
         dropout = nn.Dropout2d(0.2)
 
-        self.__model = nn.Sequential(           # (_, 3, 32, 32)
+        self._model = nn.Sequential(            # (_, 3, 32, 32)
             nn.Conv2d(3, 128, 3, padding=1),    # (_, 128, 32, 32)
             nn.BatchNorm2d(128),
             relu,
@@ -43,9 +67,9 @@ class CNN(nn.Module):
             maxpool,                            # (_, 512, 4, 4)
             dropout,
 
-            nn.Flatten(),
+            nn.Flatten(),                       # (_, 512 * 4 * 4)
             nn.Linear(512 * 4 * 4, 10)          # (_, 10)
         )
     
     def forward(self, x: Tensor) -> Tensor:
-        return self.__model(x)
+        return self._model(x)
