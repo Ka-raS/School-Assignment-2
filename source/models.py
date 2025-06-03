@@ -1,13 +1,7 @@
-from torch import nn, optim, Tensor
+from torch import nn, Tensor
 
 
 class MLP(nn.Module):
-    OPTIMIZER = optim.Adam
-    OPTIMIZER_PARAMS = {
-        'lr': 0.001,
-        'weight_decay': 1e-6
-    }
-
     def __init__(self):
         super().__init__()
 
@@ -34,13 +28,6 @@ class MLP(nn.Module):
         return self.__model(x)
 
 class CNN(nn.Module):
-    OPTIMIZER = optim.SGD
-    OPTIMIZER_PARAMS = {
-        'lr': 0.01,
-        'momentum': 0.9,
-        'weight_decay': 1e-6
-    }
-
     def __init__(self):
         super().__init__()
 

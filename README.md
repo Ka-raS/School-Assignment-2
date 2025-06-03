@@ -3,10 +3,6 @@ A school project involves classifying CIFAR-10 images using 3 layers Multi-Layer
 
 Outputs directories are displayed on terminal. Total runtime is way longer than it should have been.
 
-## Contributors
-- [@Ka-raS](https://github.com/Ka-raS)
-- [@phamquocdow](https://github.com/phamquocdow)
-
 ## Dependencies
 - [**python 3.10.0**](https://www.python.org/downloads/release/python-3100/)
 - [**torch**](https://pypi.org/project/torch/), [**torchvision**](https://pypi.org/project/torchvision/) - Build, Train/Validate/Test Models

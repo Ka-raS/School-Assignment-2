@@ -15,6 +15,7 @@ ROOT_DIR = pathlib.Path(__file__).parents[1]
 DATA_DIR = ROOT_DIR / 'data'
 OUTPUT_DIR = ROOT_DIR / 'output'
 
+
 def prepare() -> None:
     DATA_DIR.mkdir(exist_ok=True)
     OUTPUT_DIR.mkdir(exist_ok=True)
@@ -65,7 +66,7 @@ def train_validate_test(net_class: type[nn.Module], cifar10: core.CIFAR10Helper)
 
     plt.close('all')
 
-def run() -> None:
+def run2() -> None:
     prepare()
 
     print('Data Analysis:')

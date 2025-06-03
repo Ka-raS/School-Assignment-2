@@ -5,7 +5,7 @@ import multiprocessing
 import torch 
 import numpy as np
 import matplotlib.pyplot as plt
-from torch import nn
+from torch import nn, optim
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
@@ -18,8 +18,11 @@ LOG_INTERVAL = 25
 BATCH_SIZE_TRAIN = 64
 BATCH_SIZE_TEST = 1000
 VALIDATION_SIZE = 0.2
+ADAMW_PARAMS = {'lr': 0.001, 'weight_decay': 1e-3}
+SGD_PARAMS = {'lr': 0.01, 'momentum': 0.9, 'weight_decay': 1e-3}
 CPU_CORES = multiprocessing.cpu_count() - 1
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 class CIFAR10Helper:
     __slots__ = (
@@ -70,7 +73,10 @@ class Trainer:
         self.cifar10 = cifar10
         self.net = net_class().to(DEVICE)
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = net_class.OPTIMIZER(self.net.parameters(), **net_class.OPTIMIZER_PARAMS)
+        if net_class.__name__ == 'MLP':
+            self.optimizer = optim.AdamW(self.net.parameters(), **ADAMW_PARAMS)
+        else:
+            self.optimizer = optim.SGD(self.net.parameters(), **SGD_PARAMS)
 
     def train(self) -> plt.Figure:
         """return learning curve plot"""
