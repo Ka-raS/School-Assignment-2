@@ -31,7 +31,7 @@
 \end{titlepage}
 
 \chapter*{Introduction}
-This report is the justification and results for the assignment. The assignment focuses on building, training and 
+This report is the justification and the results of the assignment. The assignment focuses on building, training and 
 testing two simple neural networks to classify the CIFAR-10 dataset: A three layers Multi-Layer Perceptron 
 (MLP) and a three convolution layers Convolutional Neural Network (CNN).
 
@@ -46,7 +46,7 @@ These are the main tasks:
     \item Use the PyTorch library.
 \end{itemize}
 
-\section*{Packages Dependencies}
+\section*{Package Dependencies}
 These packages are centered around working with the PyTorch library as the requirement has stated:
 \begin{itemize}
     \item \texttt{torch}: For building and training neural networks.
@@ -74,18 +74,18 @@ in 10 classes, with 6,000 images per class. PyTorch library splits the dataset i
 \end{figure}
 
 In this project, to do training validation and testing seperately, the 50.000 images set is split into 40,000 
-training images and 10,000 validation images. This is a common method tune the model based on the validation 
+training images and 10,000 validation images. This is a common method of tuning the model based on the validation 
 set's results, and then testing the model with the test set to have an unbiased evaluation of the model.
 
 \section{Data Analysis}
 The first step of any Machine Learning exercise is to do Data Analysis. All analysis will be done on the 40,000 
 images train set only. This is to simulate the real world scenario, where the test set is not available during the 
-training process. The validation set is used for tuning the model, so it is not used in the analysis.
+training process. The validation set is solely used for tuning the model, so it is not used in the analysis.
 
 \subsection{Color Distribution} 
-The below graph shows the RGB color distribution of the dataset, with the color intensity ranging from 0 to 
-255. Based on the graph, all three channels does follow a Gaussian distribution to some degree, minus the very 
-high peak at the 255 region. The blue channel specifically is right skewed, so unlike other distribution with a 
+The below graphs show the RGB color distribution of the dataset, with the color intensity ranging from 0 to 
+255. Based on the graph, all three channels does follow a balanced distribution to some degree, minus the very 
+high peak at the 250 region. The blue channel specifically is right skewed, so unlike other distribution with a 
 mean around 128, blue has a mean around 100.
 
 \begin{figure}[ht]
@@ -95,10 +95,10 @@ mean around 128, blue has a mean around 100.
 \end{figure}
 
 \subsection{Mean And Standard Deviation} 
-MLP and CNN can perform better on a normalized dataset, often resulting in a faster convergence and better 
-accuracy. In PyTorch, \texttt{torchvision.transforms.Normalize} function normalizes images by adjusting their 
-pixel values according to the mean and standard deviation of the dataset. So the next step is to find the mean 
-and standard deviation. The table includes the raw values and also the normalized values divided by 255.
+MLP and CNN can perform better on a normalized dataset, resulting in a faster convergence and better accuracy. 
+In PyTorch, the \texttt{torchvision.transforms.Normalize} function normalizes images by adjusting their pixel 
+values according to the mean and standard deviation of the dataset. The table below includes the raw values 
+and also the normalized values divided by 255.
 
 \begin{table}[ht]
     \center
@@ -106,9 +106,9 @@ and standard deviation. The table includes the raw values and also the normalize
     \caption{cifar10-mean-std.csv}
 \end{table}
 
-\subsection{Transform Dataset}
-Finally, all three datasets are transformed.\texttt{torchvision.transforms.ToTensor()} converts each image from 
-shape of $32\times32\times3$ to a tensor with shape of $3\times32\times32$.
+\subsection{Transforming The Dataset}
+Before normalization, all three datasets are converted .\texttt{torchvision.transforms.ToTensor}, each image is 
+reshaped from a dimension of $32\times32\times3$ to $3\times32\times32$.
 
 \newpage
 \begin{verbatim}
@@ -122,8 +122,8 @@ shape of $32\times32\times3$ to a tensor with shape of $3\times32\times32$.
 \end{verbatim}
 
 \section{Building Models}
-To keep the program simple, both models' hyper parameters are tuned by hand after each training/validation 
-cycle until the performance is deemed high enough. Below are the structure of the two models.
+To keep the project simple, both models' hyper parameters were tuned by hand after each training/validation 
+cycle until the performance is deemed high enough. Below are the final structure of the two models.
 
 \subsection{Multi-Layer Perceptron}
 The MLP model used for this assignment consists of three fully connected linear layers:
@@ -241,15 +241,15 @@ The CNN model used for this assignment consists of three convolution layers and 
 
 \section{Criterion and Optimizers}
 Now comes the most important part of the exercise: Optimize the optimizers. The two models use the same loss 
-function, which is \texttt{torch.nn.CrossEntropyLoss}. For the optimizers, MLP uses \texttt{torch.optim.Adam} and CNN 
-uses \texttt{torch.optim.SGD}. Similar to building the models, the below optimizers' parameters were manually 
+function \texttt{torch.nn.CrossEntropyLoss}. For the optimizer, MLP uses \texttt{torch.optim.AdamW} and CNN 
+uses \texttt{torch.optim.SGD}. Similar to building the models, the optimizers' parameters were manually 
 tuned after each validation cycle.
 
 \subsection{Cross Entropy Loss}
 \texttt{torch.nn.CrossEntropyLoss} is a loss function commonly used for multi-class classification problems, making 
-it suitable for CIFAR-10. It is a combination of \texttt{torch.nn.LogSoftmax}, an activation function, and 
+it suitable for CIFAR-10. It is a combination of \texttt{torch.nn.LogSoftmax}, an activation function and 
 \texttt{torch.nn.NLLLoss}, a loss function. \texttt{LogSoftmax} converts raw output scores into probabilities that sum to 
-1 and apply logarithm. \texttt{NLLLoss} takes the log-probabilities and measures how far off the predictions are from 
+1 then apply logarithm. \texttt{NLLLoss} takes the log-probabilities and measures how far off the predictions are from 
 the true labels. 
 
 \[ L(x, y) = - \sum_{i=1}^{C} y_i \cdot \log(x_i) \]
@@ -262,11 +262,11 @@ the true labels.
     \end{tabular}
 \end{center}
 
-\subsection{Adaptive Moment Estimation}
-\texttt{torch.optim.AdamW} is \texttt{torch.optim.Adam} with weight decay, which by itself is an optimization algorithm 
-combining the advantages of two other popular optimizers \texttt{torch.optim.Adagrad} and \texttt{torch.optim.RMSprop}. 
-Because of its adaptive nature, Adam works well with its default hyper parameters. The final weight decay is tuned to 
-$10^{-3}$ to prevent MLP from over fitting too early on.
+\subsection{Adaptive Moment Estimation With Weight}
+\texttt{torch.optim.AdamW} is \texttt{torch.optim.Adam} with weight decay added. Adam by itself is a popular optimization 
+algorithm combining the advantages of two other optimizers: \texttt{torch.optim.Adagrad} and \texttt{torch.optim.RMSprop}. 
+Because of its adaptive nature, AdamW works well with its default hyper parameters. The final tuned weight decay is set to 
+$10^{-3}$ to prevent MLP from over fitting.
 
 \[
 \begin{array}{rcl}
@@ -294,11 +294,11 @@ $10^{-3}$ to prevent MLP from over fitting too early on.
 
 \subsection{Stochastic Gradient Descent}
 \texttt{torch.optim.SGD} is one of the most commonly used optimization algorithms. It updates CNN parameters
-using loss function's gradient. "Stochastic" means the gradients is from computing random mini-batch rather 
-than the whole dataset, making the process faster and more memory-efficient. CNN is often paired with SGD 
-+ momentum over Adam for better generalization. Although SGD requires more tuning, the performance gains 
-can be significant. The momentum helps escape local minima and accelerates progress in shallow valleys. In 
-the project, the final tuned parameters are: learning rate = 0.01, momentum = 0.9 and weight delay = $10^{-3}$.
+using loss function's gradient. "Stochastic" means the gradients is from computing random mini batch rather 
+than the whole dataset, making the process faster and more memory efficient. CNN is often paired with SGD 
++ momentum for better generalization. Although SGD requires more tuning, the performance gains can be 
+significant. The momentum factor helps escape local minima and accelerates progress in shallow valleys. In the 
+project, the final tuned parameters are: learning rate = 0.01, momentum = 0.9 and weight delay = $10^{-3}$.
 
 \[
 \begin{array}{rcl}
@@ -322,11 +322,11 @@ the project, the final tuned parameters are: learning rate = 0.01, momentum = 0.
 \section{Training And Validation}
 \subsection{The Method}
 With all the components ready, the training and validation process starts with spliting the two's dataset into 
-smaller batches. Aside from reducing the hardware workload, smaller train batches leads to faster parameter 
-updates and improve generalization. Batches too small can introduce noises, slowing down convergence, too 
-large gives a smoother params updates but less generalization. The training batch size in the project is set to 
-64 after some tuning, 40,000 images is split into 625 batches. For the validation set the batch size is 1,000 as 
-the dataset is used for tuning parameters, not training.  
+smaller batches. Aside from reducing hardware workload, smaller train batches leads to faster parameter updates 
+and improve generalization. Batches too small can introduce noises, slowing down convergence while too large 
+gives a smoother params updates but less generalization. The training batch size in the project is set to 64 
+after some tuning, that is a total of 625 batches from 40,000 images. For the validation set, the batch size is 
+1,000 because the dataset is used for tuning parameters, not training.  
 
 \begin{verbatim}
     # python
@@ -347,13 +347,13 @@ the dataset is used for tuning parameters, not training.
         validation_accuracies.append(validation_accuracy)
 \end{verbatim}
 
-Both models will train through the train dataset 20 times (20 epochs). The training loss and accuracy values is calculated 
-after every 25 batches for a more detailed reference for parameters tuning. For validation values is calculated
-after each training cycle.
+Both models will train through the train dataset 20 times (20 epochs). The training loss and accuracy values 
+are calculated after every 25 batches trained for a more detailed reference for parameters tuning. The validation 
+values are calculated after each training cycle.
 
 \subsection{Learning Curve}
-Based on the output values above, plotting the learning curve graph can show some insights on how to tune the 
-parameters:
+Based on the validation values collected above, a learning curve graph can be plotted to show some insights on 
+how well tuned are the parameters.
 
 \subsubsection*{Underfitting}
 \begin{itemize}
@@ -361,21 +361,21 @@ parameters:
     \item Validation loss is also high
     \item Accuracy is low for both
 \end{itemize}
-This means model is too simple or learning too slowly. Tuning by increase the epochs number or learning rate.
+This means model is learning too slowly. In this case, increase the number of epochs or the learning rate factor.
 
 \subsubsection*{Overfitting}
 \begin{itemize}
     \item Training loss is low, accuracy is high
     \item Validation loss is high, accuracy is low
 \end{itemize}
-This means model fits training data well, but doesn't generalize. In this case, increase the optimizer's weight
-delay or model's dropout parameter. Or maybe this is the best that the model can do, consider early stopping.
+This means model fits training data well but doesn't generalize. In this case, increase the optimizer's weight
+delay or the model's dropout parameter. Or maybe this is the best that the model can do, consider an early stopping.
 
 \newpage
 The below graphs are the learning curves of two models after some tuning. MLP validation loss and accuracy
-come to a hault at the 10th epoch with the validation accuracy around 55\%. This is expected considering MLPs 
+come to a hault at the 10th epoch with the accuracy around 55\%. This is expected considering MLPs 
 usually struggle on image data compared to CNN. On the other side, CNN performs exceptionally well with the
-validation accuracy at 80\% and still rising slowly. 
+validation accuracy at 80\% and is still rising slowly. 
 
 \begin{figure}[ht]
     \center
@@ -391,12 +391,12 @@ validation accuracy at 80\% and still rising slowly.
 
 \newpage
 \section{Testing Results}
-To evaluate the trained models without any bias, the final step is to run the models through unseen data, 
+To evaluate the two trained models without any bias, the final step is to run the models through unseen data, 
 which is the testing dataset. Below are the losses, accuracies and confusion matrices. The loss and accuracy 
-values are identical to the validation dataset, which implies that these two models are fitted for general images 
-classification tasks. The Confusion matrices show more on where the hotspot of misprediction at. Both models
-find differentiating cats and dogs, automobiles and trucks. Unlike CNN, MLP has other hotspots on the cat/dog/
-deer/horse regions. Ship/airplane is another interesting hotspot
+values are identical to the validation dataset, which implies that the validation method is well fitted for this task. 
+The Confusion matrices help visualize where are the hotspots of misprediction at. Both models find difficulties differentiating 
+between cats and dogs, automobiles and trucks, ships and airplanes. Unlike CNN, MLP hotspots spread out more inside the two class 
+groups: the animal classes and the vehicle group. However, MLP recognises well if the data is an animal or a vehicle.
 
 \begin{figure}[ht]
     \center
@@ -412,7 +412,7 @@ deer/horse regions. Ship/airplane is another interesting hotspot
 
 \section{Discussion}
 The two models has an average preformance for any MLPs and CNNs. There are more improvements to be done 
-on tuning the models and optimizer parameters and training/validation method. 
+on tuning the models and optimizer parameters, as well as the training and validation method. 
 
 One of the simplest way is to try a wide range of values, since the best parameters might be the least 
 expected ones. This method is commonly known as Grid Search, a brute force method to validate each and 
@@ -425,7 +425,11 @@ The next thing to consider is the training/validation method. Despite performing
 training dataset solely for validating is not the best method. A much better one is doing Cross Validation, 
 which is spliting the training set into k folds with equal sizes and in each iteration, one fold is picked for
 validation and $k-1$ other folds are for training. After finding the best parameters based on the validation results,
-all folds can be 
+all folds can be used for training.
+
+The last one is to have a learning rate scheduler to adjust the learning rate during training. At the begining the learning 
+rate can be setted higher for faster learning. After a few epoch cycle with some signs of slow improvement, the scheduler can 
+automatically lowering the learning rate.
 
 \begingroup
 \let\clearpage\relax
