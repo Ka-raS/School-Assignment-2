@@ -32,10 +32,10 @@ Outputs directories are displayed on terminal. Total runtime is way longer than 
     ```
 
 ## Compile report file using [MikTex](https://miktex.org/download)
-    ```bash
-    cd report
-    pdflatex report.tex
-    ```
+```bash
+cd report
+pdflatex report.tex
+```
 
 ## Screenshot
 <div align="center">
