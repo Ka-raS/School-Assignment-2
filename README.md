@@ -1,5 +1,5 @@
 # Image Classification
-A school project involves classifying CIFAR-10 images using 3 layers Multi-Layer Perceptron and Convolutional Neural Network.
+A school project involves classifying CIFAR-10 images using Multi-Layer Perceptron and Convolutional Neural Network.
 
 Outputs directories are displayed on terminal. Total runtime is way longer than it should have been.
 

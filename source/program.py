@@ -66,11 +66,12 @@ def train_validate_test(net_class: type[nn.Module], cifar10: core.CIFAR10Helper)
 
     plt.close('all')
 
-def run2() -> None:
+def run() -> None:
     prepare()
-
-    print('Data Analysis:')
+    print('Download CIFAR-10:')
     cifar10 = core.CIFAR10Helper(DATA_DIR)
+
+    print('\nData Analysis:')
     mean, std = data_analysis(cifar10.train_set)
     cifar10.normalize(mean, std)
  

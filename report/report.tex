@@ -1,4 +1,5 @@
 \documentclass{report}
+\usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{csvsimple}
 \usepackage[T5]{fontenc}
@@ -56,9 +57,7 @@ These packages are centered around working with the PyTorch library as the requi
     \item \texttt{matplotlib}: For plotting learning curves, confusion matrices and others.
 \end{itemize}
 
-\newpage
 \tableofcontents
-\newpage
 
 \chapter*{Report}
 
@@ -75,7 +74,7 @@ in 10 classes, with 6,000 images per class. PyTorch library splits the dataset i
 
 In this project, to do training validation and testing seperately, the 50.000 images set is split into 40,000 
 training images and 10,000 validation images. This is a common method of tuning the model based on the validation 
-set's results, and then testing the model with the test set to have an unbiased evaluation of the model.
+set's results and then testing the model with the test set to have an unbiased evaluation.
 
 \section{Data Analysis}
 The first step of any Machine Learning exercise is to do Data Analysis. All analysis will be done on the 40,000 
@@ -107,7 +106,7 @@ and also the normalized values divided by 255.
 \end{table}
 
 \subsection{Transforming The Dataset}
-Before normalization, all three datasets are converted .\texttt{torchvision.transforms.ToTensor}, each image is 
+Before normalization, all three datasets are converted with \texttt{torchvision.transforms.ToTensor}, each image is 
 reshaped from a dimension of $32\times32\times3$ to $3\times32\times32$.
 
 \newpage
@@ -132,21 +131,18 @@ The MLP model used for this assignment consists of three fully connected linear 
     # python
     from torch import nn
 
-    relu = nn.ReLU()
-    dropout = nn.Dropout(0.2)
-    
     model = nn.Sequential(                  # (_, 3, 32, 32)
         nn.Flatten(),                       # (_, 3 * 32 * 32)
 
         nn.Linear(3 * 32 * 32, 512),        # (_, 512)
         nn.BatchNorm1d(512),
-        relu,
-        dropout,
+        nn.ReLU(),
+        nn.Dropout(0.4),
 
         nn.Linear(512, 256),                # (_, 256)
         nn.BatchNorm1d(256),
-        relu,
-        dropout,
+        nn.ReLU(),
+        nn.Dropout(0.4),
 
         nn.Linear(256, 10)                  # (_, 10)
     )
@@ -159,14 +155,14 @@ The MLP model used for this assignment consists of three fully connected linear 
         \item Fully connected layer with 512 output units.
         \item Batch normalization for improved training stability.
         \item ReLU activation for non-linearity.
-        \item Dropout 20\% for regularization.
+        \item Dropout 40\% for regularization.
     \end{itemize}
     \item \textbf{Second Linear Block:}
     \begin{itemize}
         \item Fully connected layer with 256 output units.
         \item Batch normalization.
         \item ReLU activation.
-        \item Dropout 20\%.
+        \item Dropout 40\%.
     \end{itemize}
     \item \textbf{Output Linear Layer:} Fully connected layer mapping to 10 output classes.
 \end{enumerate}
@@ -178,69 +174,67 @@ The CNN model used for this assignment consists of three convolution layers and 
     # python
     from torch import nn
 
-    relu = nn.ReLU()
-    maxpool = nn.MaxPool2d(2, stride=2)
-    dropout = nn.Dropout2d(0.2)
-
     model = nn.Sequential(                  # (_, 3, 32, 32)
-        nn.Conv2d(3, 128, 3, padding=1),    # (_, 128, 32, 32)
+        nn.Conv2d(3, 32, 3, padding=1),     # (_, 32, 32, 32)
+        nn.BatchNorm2d(32),
+        nn.ReLU(),
+        nn.Dropout2d(0.1),
+        nn.MaxPool2d(2, stride=2),          # (_, 32, 16, 16)
+
+        nn.Conv2d(32, 64, 3, padding=1),    # (_, 64, 16, 16)
+        nn.BatchNorm2d(64),
+        nn.ReLU(),
+        nn.Dropout2d(0.1),
+        nn.MaxPool2d(2, stride=2),          # (_, 64, 8, 8)
+
+        nn.Conv2d(64, 128, 3, padding=1),   # (_, 128, 8, 8)
         nn.BatchNorm2d(128),
-        relu,
-        maxpool,                            # (_, 128, 16, 16)
-        dropout,
+        nn.ReLU(),
+        nn.Dropout2d(0.1),
+        nn.MaxPool2d(2, stride=2),          # (_, 128, 4, 4)
 
-        nn.Conv2d(128, 256, 3, padding=1),  # (_, 256, 16, 16)
-        nn.BatchNorm2d(256),
-        relu,
-        maxpool,                            # (_, 256, 8, 8)
-        dropout,
-
-        nn.Conv2d(256, 512, 3, padding=1),  # (_, 512, 8, 8)
-        nn.BatchNorm2d(512),
-        relu,
-        maxpool,                            # (_, 512, 4, 4)
-        dropout,
-
-        nn.Flatten(),                       # (_, 512 * 4 * 4)
-        nn.Linear(512 * 4 * 4, 10)          # (_, 10)
+        nn.Flatten(),                       # (_, 128 * 4 * 4)
+        nn.Dropout(0.4),
+        nn.Linear(128 * 4 * 4, 10)          # (_, 10)
     )
 \end{verbatim}
 
 \begin{enumerate}
     \item \textbf{First Convolutional Block:}
     \begin{itemize}
-        \item 2D convolution: 3 input channels, 128 output channels, $3\times3$ kernel, padding=1. The padding=1 is 
+        \item 2D convolution: 3 input channels, 32 output channels, $3\times3$ kernel, padding=1. The padding=1 is 
               for preserving the dimensions from $30\times30$ to $32\times32$.
         \item Batch normalization.
         \item ReLU activation.
+        \item Dropout 10\%.
         \item $2\times2$ Max pooling reduces size to $16\times16$.
-        \item Dropout 20\%.
     \end{itemize}
     \item \textbf{Second Convolutional Block:}
     \begin{itemize}
-        \item 2D convolution: 128 input to 256 output channels.
+        \item 2D convolution: 32 input to 64 output channels.
         \item Batch normalization.
         \item ReLU activation.
-        \item $2\times2$ Max pooling for size of $8\times8$.
-        \item Dropout 20\%.
+        \item Dropout 10\%.
+        \item $2\times2$ Max pooling reduces size to $8\times8$.
     \end{itemize}
     \item \textbf{Third Convolutional Block:}
     \begin{itemize}
-        \item 2D convolution: 256 input to 512 output channels.
+        \item 2D convolution: 64 input to 128 output channels.
         \item Batch normalization.
         \item ReLU activation.
-        \item $2\times2$ Max pooling for size of $4\times4$.
-        \item Dropout 20\%.
+        \item Dropout 10\%.
+        \item $2\times2$ Max pooling reduces size to $4\times4$.
     \end{itemize}
     \item \textbf{Output Linear Layer:}
     \begin{itemize}
-        \item Flatten layer converts feature maps to a vector size of $512\times4\times4$.
+        \item Flatten layer converts feature maps to a vector size of $128\times4\times4$.
+        \item Dropout 40\%.
         \item Fully connected linear layer mapping to 10 output classes.
     \end{itemize}
 \end{enumerate}
 
-\section{Criterion and Optimizers}
-Now comes the most important part of the exercise: Optimize the optimizers. The two models use the same loss 
+\section{Criterion and Optimizer}
+Now comes the most important part of the exercise: Optimize the optimizer. The two models use the same loss 
 function \texttt{torch.nn.CrossEntropyLoss}. For the optimizer, MLP uses \texttt{torch.optim.AdamW} and CNN 
 uses \texttt{torch.optim.SGD}. Similar to building the models, the optimizers' parameters were manually 
 tuned after each validation cycle.
@@ -262,20 +256,32 @@ the true labels.
     \end{tabular}
 \end{center}
 
-\subsection{Adaptive Moment Estimation With Weight}
-\texttt{torch.optim.AdamW} is \texttt{torch.optim.Adam} with weight decay added. Adam by itself is a popular optimization 
-algorithm combining the advantages of two other optimizers: \texttt{torch.optim.Adagrad} and \texttt{torch.optim.RMSprop}. 
-Because of its adaptive nature, AdamW works well with its default hyper parameters. The final tuned weight decay is set to 
-$10^{-3}$ to prevent MLP from over fitting.
+\subsection{Adaptive Moment Estimation}
+\texttt{torch.optim.Adam} is a popular optimization algorithm combining the advantages of two other optimizers: 
+\texttt{torch.optim.Adagrad} and \texttt{torch.optim.RMSprop}. Because of its adaptive nature, Adam works well 
+with its default hyper parameters, which the project is using.
 
+\begin{verbatim}
+    # python
+    from torch.optim import Adam
+
+    Adam(
+        mlp.parameters(),
+        lr=0.001,
+        weight_decay=1e-6,
+        betas=(0.9, 0.999),
+        eps=1e-8
+    )
+\end{verbatim}
+
+Adam formulas:
 \[
 \begin{array}{rcl}
     m_t       & = & \beta_1 m_{t-1} + (1 - \beta_1) g_t                                 \\ [0.2cm]
     v_t       & = & \beta_2 v_{t-1} + (1 - \beta_2) g_t^2                               \\ [0.2cm]
     \hat{m}_t & = & \frac{m_t}{1 - \beta_1^t}                                           \\ [0.2cm]
     \hat{v}_t & = & \frac{v_t}{1 - \beta_2^t}                                           \\ [0.2cm]
-    \theta_t  & = & \theta_{t-1} - \eta \left( \frac{\hat{m}_t}{\sqrt{\hat{v}_t} 
-                    + \epsilon} + \lambda \theta_{t-1} \right)                             
+    \theta_t  & = & \theta_{t-1} - \eta \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}                           
 \end{array}
 \]
 
@@ -287,8 +293,7 @@ $10^{-3}$ to prevent MLP from over fitting.
         $\beta_1$, $\beta_2$:     & Decay rates of $m_t$, $v_t$         \\
         $\theta_t$:               & Model's parameters                  \\
         $\eta$:                   & Learning rate                       \\
-        $\lambda$:                & Weight decay coefficient            \\
-        $\epsilon$:               & Constant for numerical stability    
+        $\epsilon$:               & Constant for numerical stability
     \end{tabular}   
 \end{center}
 
@@ -297,9 +302,23 @@ $10^{-3}$ to prevent MLP from over fitting.
 using loss function's gradient. "Stochastic" means the gradients is from computing random mini batch rather 
 than the whole dataset, making the process faster and more memory efficient. CNN is often paired with SGD 
 + momentum for better generalization. Although SGD requires more tuning, the performance gains can be 
-significant. The momentum factor helps escape local minima and accelerates progress in shallow valleys. In the 
-project, the final tuned parameters are: learning rate = 0.01, momentum = 0.9 and weight delay = $10^{-3}$.
+significant. The momentum factor helps escape local minima and accelerates progress in shallow valleys.
+The weight decay is to prevent overfitting.
 
+\begin{verbatim}
+    # python
+    from torch.optim import SGD
+
+    # final tuned SGD
+    SGD(
+        cnn.parameters(),
+        lr=0.01,
+        momentum=0.9,
+        weight_decay=1e-4
+    )
+\end{verbatim}
+
+SGD formulas:
 \[
 \begin{array}{rcl}
     v_{t+1}      & = & \mu v_t - \eta g_t                               \\ [0.2cm]
@@ -319,77 +338,120 @@ project, the final tuned parameters are: learning rate = 0.01, momentum = 0.9 an
     \end{tabular}   
 \end{center}
 
+\subsection{Reduce Learning Rate On Plateau}
+\texttt{torch.optim.lr\_scheduler.ReduceLROnPlateau} is a learning rate scheduler, used by both model to reduce 
+the learning rate when a metric has stopped improving. In this project, The scheduler will multiply the learning
+rate by 0.1 every 3 epochs of stalled validation loss.
+
+\begin{verbatim}
+    #python
+    from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+    ReduceLROnPlateau(
+        optimizer,
+        mode='min', 
+        factor=0.1, 
+        patience=3
+    )
+\end{verbatim}
+
 \section{Training And Validation}
 \subsection{The Method}
 With all the components ready, the training and validation process starts with spliting the two's dataset into 
 smaller batches. Aside from reducing hardware workload, smaller train batches leads to faster parameter updates 
 and improve generalization. Batches too small can introduce noises, slowing down convergence while too large 
-gives a smoother params updates but less generalization. The training batch size in the project is set to 64 
-after some tuning, that is a total of 625 batches from 40,000 images. For the validation set, the batch size is 
-1,000 because the dataset is used for tuning parameters, not training.  
+gives a smoother params updates but less generalization. 
+
+The training batch size in the project is set to 64 after some tuning, that is a total of 625 batches from 40,000 
+images. For the validation set, the batch size is 1,000 because the dataset is used for tuning parameters, not 
+training. Both models goes over the train dataset 40 times (40 epochs), this is to get a wider view of the learning 
+curve. Training/validation loss and accuracy calculated after every training cycle.
 
 \begin{verbatim}
     # python
+    import torch
 
-    model = ...
-    train_losses = []
-    train_accuracies = []
-    validation_losses = []
-    validation_accuracies = []
+    def train(net, loader, optimizer, criterion):
+        net.train()
+        running_loss = corrects = 0
 
-    for epoch in range(20):
-        train_loss, train_accuracy = train(model, train_loader)
-        validation_loss, validation_accuracy = test(model, validation_loader)
+        for images, targets in loader:
+            optimizer.zero_grad()
+            predicts = net(images)
+            loss = criterion(predicts, targets)
+            loss.backward()
+            optimizer.step()
 
-        train_losses.extend(train_loss)
-        train_accuracies.extend(train_accuracy)
-        validation_losses.append(validation_loss)
-        validation_accuracies.append(validation_accuracy)
+            running_loss += loss
+            corrects += (predicts.max(1)[1]  == targets).sum()
+
+        loss = running_loss.item() / len(loader)
+        accuracy = corrects.item() / len(loader.dataset)
+        return loss, accuracy
+
+    def test(net, loader, criterion):
+        net.eval()
+        running_loss = corrects = 0
+        
+        with torch.no_grad():
+            for images, targets in loader:
+                predicts = net(images)
+                loss = self.criterion(predicts, targets)
+
+                running_loss += loss
+                corrects += (predicts.max(1)[1] == targets).sum()
+
+        loss = running_loss.item() / len(loader)
+        accuracy = corrects.item() / len(loader.dataset)
+        return loss, accuracy
+
+    for epoch in range(40):
+        train_loss, train_accuracy = train(net, train_loader, criterion, optimizer)
+        validation_loss, validation_accuracy = test(net, validation_loader, criterion)
+        scheduler.step(validation_loss)
 \end{verbatim}
-
-Both models will train through the train dataset 20 times (20 epochs). The training loss and accuracy values 
-are calculated after every 25 batches trained for a more detailed reference for parameters tuning. The validation 
-values are calculated after each training cycle.
 
 \subsection{Learning Curve}
 Based on the validation values collected above, a learning curve graph can be plotted to show some insights on 
 how well tuned are the parameters.
 
 \subsubsection*{Underfitting}
+This means model is learning too slowly. In this case, increase the number of epochs or the learning rate factor.
+
 \begin{itemize}
     \item Training loss is high
     \item Validation loss is also high
     \item Accuracy is low for both
 \end{itemize}
-This means model is learning too slowly. In this case, increase the number of epochs or the learning rate factor.
+
 
 \subsubsection*{Overfitting}
+This means model fits training data well but doesn't generalize. In this case, increase optimizer's weight delay 
+or model's dropout parameter. Or maybe this is the best that the model can do, consider early stopping.
+
 \begin{itemize}
     \item Training loss is low, accuracy is high
     \item Validation loss is high, accuracy is low
 \end{itemize}
-This means model fits training data well but doesn't generalize. In this case, increase the optimizer's weight
-delay or the model's dropout parameter. Or maybe this is the best that the model can do, consider an early stopping.
 
-\newpage
-The below graphs are the learning curves of two models after some tuning. MLP validation loss and accuracy
-come to a hault at the 10th epoch with the accuracy around 55\%. This is expected considering MLPs 
-usually struggle on image data compared to CNN. On the other side, CNN performs exceptionally well with the
-validation accuracy at 80\% and is still rising slowly. 
+\noindent
+The below graphs are the learning curves of two models after some tuning. MLP shows signs of overfitting, with loss value 
+around 1.2 and accuracy around 58\%. This is expected considering MLPs usually struggle on image data compared to CNN. 
+On the other side, CNN performs exceptionally well with loss value around 0.56 and accuracy around 81\%. It's also interesting 
+that the moment ReduceLROnPlateau activates is clearly visible in both graphs.
 
-\begin{figure}[ht]
-    \center
-    \includegraphics[scale=0.385]{../output/mlp-learning-curve.pdf}
+\begin{figure}[ht!]
+    \center 
+    \includegraphics[scale=0.4]{../output/mlp-learning-curve.pdf}
     \caption{mlp-learning-curve.pdf}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \center
-    \includegraphics[scale=0.385]{../output/cnn-learning-curve.pdf}
+    \includegraphics[scale=0.4]{../output/cnn-learning-curve.pdf}
     \caption{cnn-learning-curve.pdf}
 \end{figure}
 
-\newpage
 \section{Testing Results}
 To evaluate the two trained models without any bias, the final step is to run the models through unseen data, 
 which is the testing dataset. Below are the losses, accuracies and confusion matrices. The loss and accuracy 
@@ -398,21 +460,22 @@ The Confusion matrices help visualize where are the hotspots of misprediction at
 between cats and dogs, automobiles and trucks, ships and airplanes. Unlike CNN, MLP hotspots spread out more inside the two class 
 groups: the animal classes and the vehicle group. However, MLP recognises well if the data is an animal or a vehicle.
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \center
-    \includegraphics[scale=0.385]{../output/mlp-confusion-matrix.pdf}
+    \includegraphics[scale=0.405]{../output/mlp-confusion-matrix.pdf}
     \caption{mlp-confusion-matrix.pdf}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \center
-    \includegraphics[scale=0.385]{../output/cnn-confusion-matrix.pdf}
+    \includegraphics[scale=0.405]{../output/cnn-confusion-matrix.pdf}
     \caption{cnn-confusion-matrix.pdf}
 \end{figure}
 
+\newpage
 \section{Discussion}
-The two models has an average preformance for any MLPs and CNNs. There are more improvements to be done 
-on tuning the models and optimizer parameters, as well as the training and validation method. 
+The two models have average preformance as any other three layers MLPs and CNNs. There are improvements 
+to be made on tuning the models and optimizer parameters, as well as the training and validation method. 
 
 One of the simplest way is to try a wide range of values, since the best parameters might be the least 
 expected ones. This method is commonly known as Grid Search, a brute force method to validate each and 
@@ -421,29 +484,31 @@ Random Search - randomly selects a combination. This strange but suprisingly eff
 than not can actually find the best combination. Additionally, because of its lighter weight, more values
 can be fitted into the grid to try out even more combinations.
 
-The next thing to consider is the training/validation method. Despite performing well in this project, splitting 20/%
-training dataset solely for validating is not the best method. A much better one is doing Cross Validation, 
+The next thing to consider is the training/validation method. Despite performing well in this project, splitting 20\%
+of the training set solely for validation is not the best call. A much better one is doing Cross Validation, 
 which is spliting the training set into k folds with equal sizes and in each iteration, one fold is picked for
-validation and $k-1$ other folds are for training. After finding the best parameters based on the validation results,
+validation and $k-1$ other folds are used for training. After finding the optimal parameters based on the validation results,
 all folds can be used for training.
-
-The last one is to have a learning rate scheduler to adjust the learning rate during training. At the begining the learning 
-rate can be setted higher for faster learning. After a few epoch cycle with some signs of slow improvement, the scheduler can 
-automatically lowering the learning rate.
 
 \begingroup
 \let\clearpage\relax
-
 \chapter*{Conclusion}
-Overall, this exercise is a fun way to get introduced into the world of Neural Network. Experimenting with 
-architectures like MLP and CNN, loss functions is like a creative playground for solving real-world problems.
-Changing a hyperparameter, adjust the architecture, or try a new batch size and immediately see the impact 
-feels like building a nonexistent machine to come to life. On the other side, it also shows the short comings
-of machine learning when it comes to non linear task like image classification. That's why many CAPTCHA - 
-Completely Automated Public Turing Test to tell Computers and Humans Apart - tests use image classification
-to detect bots.
-
 \endgroup
+
+Overall, this exercise is a fun way to get introduced into the world of Neural Network. Experimenting with 
+architectures like MLP and CNN, loss functions and optimizers is like a creative playground for solving real 
+world problems. Changing a hyperparameter, adjust the architecture, or try a new batch size and immediately 
+see the impact feels like building a nonexistent machine to come to life. On the other side, it also shows the 
+short comings of machine learning when it comes to non linear task like image classification. That's why many 
+CAPTCHA (Completely Automated Public Turing Test to tell Computers and Humans Apart) tests use image 
+classification to detect bots.
+
+\section*{Reference Documents}
+\url{https://docs.pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html}               \\ [0.2cm]
+\url{https://www.geeksforgeeks.org/train-a-deep-learning-model-with-pytorch/}               \\ [0.2cm]
+\url{https://www.geeksforgeeks.org/building-a-convolutional-neural-network-using-pytorch/}  \\ [0.2cm]
+\url{https://www.cs.toronto.edu/~lczhang/360/lec/w05/overfit.html}                          \\ [0.2cm]
+\url{https://www.youtube.com/watch?v=d6iQrh2TK98}
 
 
 % I Want to Be Cold

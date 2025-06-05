@@ -1,6 +1,6 @@
 import io
 import csv
-import multiprocessing
+import copy
 
 import torch 
 import numpy as np
@@ -13,15 +13,12 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import train_test_split
 
 
-EPOCHS = 20
-LOG_INTERVAL = 25
+VALIDATION_SIZE = 0.2
+EPOCH_NUM = 40
 BATCH_SIZE_TRAIN = 64
 BATCH_SIZE_TEST = 1000
-VALIDATION_SIZE = 0.2
-ADAMW_PARAMS = {'lr': 0.001, 'weight_decay': 1e-3}
-SGD_PARAMS = {'lr': 0.01, 'momentum': 0.9, 'weight_decay': 1e-3}
-CPU_CORES = multiprocessing.cpu_count() - 1
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+SGD_PARAMS = {'lr': 0.01, 'momentum': 0.9, 'weight_decay': 1e-4}
+SCHEDULER_PARAMS = {'mode': 'min', 'factor': 0.1, 'patience': 3}
 
 
 class CIFAR10Helper:
@@ -57,9 +54,7 @@ class CIFAR10Helper:
             DataLoader(
                 dataset,
                 batch_size,
-                shuffle,
-                num_workers=CPU_CORES,
-                pin_memory=(DEVICE.type == 'cuda')
+                shuffle
             )
             for dataset, batch_size, shuffle in [
                 (self.train_set, BATCH_SIZE_TRAIN, True),
@@ -71,12 +66,13 @@ class CIFAR10Helper:
 class Trainer:
     def __init__(self, net_class: type[nn.Module], cifar10: CIFAR10Helper):
         self.cifar10 = cifar10
-        self.net = net_class().to(DEVICE)
+        self.net = net_class()
         self.criterion = nn.CrossEntropyLoss()
         if net_class.__name__ == 'MLP':
-            self.optimizer = optim.AdamW(self.net.parameters(), **ADAMW_PARAMS)
+            self.optimizer = optim.Adam(self.net.parameters())
         else:
             self.optimizer = optim.SGD(self.net.parameters(), **SGD_PARAMS)
+        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, **SCHEDULER_PARAMS)
 
     def train(self) -> plt.Figure:
         """return learning curve plot"""
@@ -86,37 +82,31 @@ class Trainer:
         validation_losses = []
         validation_accuracies = []
 
-        for epoch in range(1, EPOCHS + 1):
-            train_loss, train_accuracy = self._train(self.cifar10.train_loader, epoch)
+        epochs = range(1, EPOCH_NUM + 1)
+        for epoch in epochs:
+            train_loss, train_accuracy = self._train()
             validation_loss, validation_accuracy = self._test(self.cifar10.validation_loader)
+            self.scheduler.step(validation_loss)
 
-            train_losses.extend(train_loss)
-            train_accuracies.extend(train_accuracy)
+            train_losses.append(train_loss)
+            train_accuracies.append(train_accuracy)
             validation_losses.append(validation_loss)
             validation_accuracies.append(validation_accuracy)
+            
+            print(f'Epoch: {epoch}/{EPOCH_NUM}, Loss: {validation_loss:.4f}, Accuracy: {validation_accuracy:.4f}', end='\r')
 
         fig, axes = plt.subplots(1, 2, figsize=(16, 9))
-        tuples = [
+        tuples = (
             ('Loss', train_losses, validation_losses),
             ('Accuracy', train_accuracies, validation_accuracies)
-        ]
-        x_train = np.arange(
-            LOG_INTERVAL, 
-            len(train_losses) * LOG_INTERVAL + 1, 
-            LOG_INTERVAL
-        )
-        x_validation = np.linspace(
-            LOG_INTERVAL, 
-            x_train[-1], 
-            len(validation_losses)
         )
 
         for ax, (name, y_train, y_validation) in zip(axes, tuples):
             ax: plt.Axes
-            ax.plot(x_train, y_train, color='blue', label='Train')
-            ax.plot(x_validation, y_validation, color='red', label='Validation')
+            ax.plot(epochs, y_train, color='blue', label='Train')
+            ax.plot(epochs, y_validation, color='red', label='Validation')
             ax.set_title(f'{name} Curve')
-            ax.set_xlabel('Batches Trained')
+            ax.set_xlabel('Epoch')
             ax.set_ylabel(name)
             ax.legend()
 
@@ -140,19 +130,14 @@ class Trainer:
         plt.tight_layout()
         return plt.gcf()
 
-    def _train(self, loader: DataLoader, curr_epoch: int) -> tuple[list[float], list[float]]: 
+    def _train(self) -> tuple[list[float], list[float]]: 
         """return losses, accuracies per LOG_INTERVAL batches"""
         
         self.net.train()
-        losses = []
-        accuracies = []
-        running_loss = corrects = total = 0
+        loader = self.cifar10.train_loader
+        running_loss = corrects = 0
 
-        for batch, (images, targets) in enumerate(loader, start=1):
-            print(f'Training: Epoch {curr_epoch}/{EPOCHS}, Batch {batch}/{len(loader)}   ', end='\r')
-            images = images.to(DEVICE)
-            targets = targets.to(DEVICE)
-
+        for images, targets in loader:
             self.optimizer.zero_grad()
             predicts = self.net(images)
             loss = self.criterion(predicts, targets)
@@ -160,17 +145,11 @@ class Trainer:
             self.optimizer.step()
 
             running_loss += loss
-            corrects += (predicts.max(1)[1] == targets).sum()
-            total += len(targets)
+            corrects += (predicts.max(1)[1]  == targets).sum()
 
-            if batch % LOG_INTERVAL == 0:
-                losses.append(running_loss.item() / LOG_INTERVAL)
-                accuracies.append(corrects.item() / total)
-                running_loss = corrects = total = 0
-        
-        if curr_epoch == EPOCHS:
-            print(f'Training: Epoch {EPOCHS}/{EPOCHS} - Done        ', end='\r')
-        return losses, accuracies
+        loss = running_loss.item() / len(loader)
+        accuracy = corrects.item() / len(loader.dataset)
+        return loss, accuracy
         
     def _test(self, loader: DataLoader, return_predicts=False) -> tuple[float, float, list[int] | None]: 
         """return loss(Tensor), accuracy, optional predicts"""
@@ -182,11 +161,9 @@ class Trainer:
 
         with torch.no_grad():
             for images, targets in loader:
-                images = images.to(DEVICE)
-                targets = targets.to(DEVICE)
-
                 predicts = self.net(images)
                 running_loss += self.criterion(predicts, targets)
+
                 predicts = predicts.max(1)[1]
                 corrects += (predicts == targets).sum()
                 if return_predicts:
@@ -194,7 +171,6 @@ class Trainer:
 
         loss = running_loss.item() / len(loader)
         accuracy = corrects.item() / len(loader.dataset)
-
         if return_predicts:
             return loss, accuracy, torch.cat(predictions).tolist()
         return loss, accuracy
