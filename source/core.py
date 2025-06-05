@@ -16,7 +16,7 @@ VALIDATION_SIZE = 0.2
 EPOCH_NUM = 40
 BATCH_SIZE_TRAIN = 64
 BATCH_SIZE_TEST = 1000
-SGD_PARAMS = {'lr': 0.01, 'momentum': 0.9, 'weight_decay': 1e-4}
+SGD_PARAMS = {'lr': 0.01, 'momentum': 0.9, 'weight_decay': 1e-3}
 SCHEDULER_PARAMS = {'mode': 'min', 'factor': 0.1, 'patience': 3}
 
 

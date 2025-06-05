@@ -110,6 +110,7 @@ Before normalization, all three datasets are converted with \texttt{torchvision.
 reshaped from a dimension of $32\times32\times3$ to $3\times32\times32$.
 
 \newpage
+
 \begin{verbatim}
     # python
     from torchvision import transforms
@@ -235,7 +236,7 @@ The CNN model used for this assignment consists of three convolution layers and 
 
 \section{Criterion and Optimizer}
 Now comes the most important part of the exercise: Optimize the optimizer. The two models use the same loss 
-function \texttt{torch.nn.CrossEntropyLoss}. For the optimizer, MLP uses \texttt{torch.optim.AdamW} and CNN 
+function \texttt{torch.nn.CrossEntropyLoss}. For the optimizer, MLP uses \texttt{torch.optim.Adam} and CNN 
 uses \texttt{torch.optim.SGD}. Similar to building the models, the optimizers' parameters were manually 
 tuned after each validation cycle.
 
@@ -314,7 +315,7 @@ The weight decay is to prevent overfitting.
         cnn.parameters(),
         lr=0.01,
         momentum=0.9,
-        weight_decay=1e-4
+        weight_decay=1e-3
     )
 \end{verbatim}
 
@@ -405,6 +406,13 @@ curve. Training/validation loss and accuracy calculated after every training cyc
         accuracy = corrects.item() / len(loader.dataset)
         return loss, accuracy
 
+    net: MLP | CNN
+    train_loader: DataLoader
+    validation_loader: DataLoader
+    criterion: CrossEntropyLoss
+    optimizer: Adam | SGD
+    scheduler: ReduceLROnPlateau
+
     for epoch in range(40):
         train_loss, train_accuracy = train(net, train_loader, criterion, optimizer)
         validation_loss, validation_accuracy = test(net, validation_loader, criterion)
@@ -442,13 +450,13 @@ that the moment ReduceLROnPlateau activates is clearly visible in both graphs.
 
 \begin{figure}[ht!]
     \center 
-    \includegraphics[scale=0.4]{../output/mlp-learning-curve.pdf}
+    \includegraphics[scale=0.41]{../output/mlp-learning-curve.pdf}
     \caption{mlp-learning-curve.pdf}
 \end{figure}
 
 \begin{figure}[ht!]
     \center
-    \includegraphics[scale=0.4]{../output/cnn-learning-curve.pdf}
+    \includegraphics[scale=0.41]{../output/cnn-learning-curve.pdf}
     \caption{cnn-learning-curve.pdf}
 \end{figure}
 
@@ -462,17 +470,16 @@ groups: the animal classes and the vehicle group. However, MLP recognises well i
 
 \begin{figure}[ht!]
     \center
-    \includegraphics[scale=0.405]{../output/mlp-confusion-matrix.pdf}
+    \includegraphics[scale=0.41]{../output/mlp-confusion-matrix.pdf}
     \caption{mlp-confusion-matrix.pdf}
 \end{figure}
 
 \begin{figure}[ht!]
     \center
-    \includegraphics[scale=0.405]{../output/cnn-confusion-matrix.pdf}
+    \includegraphics[scale=0.41]{../output/cnn-confusion-matrix.pdf}
     \caption{cnn-confusion-matrix.pdf}
 \end{figure}
 
-\newpage
 \section{Discussion}
 The two models have average preformance as any other three layers MLPs and CNNs. There are improvements 
 to be made on tuning the models and optimizer parameters, as well as the training and validation method. 
