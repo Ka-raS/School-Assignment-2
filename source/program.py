@@ -60,7 +60,7 @@ def train_validate_test(net_class: type[nn.Module], cifar10: core.CIFAR10Helper)
     confusion_matrix.savefig(confusion_matrix_dir)
     print(confusion_matrix_dir)
 
-    model_dir = OUTPUT_DIR / f'{name}-model.pth'
+    model_dir = OUTPUT_DIR / f'{name}-model.pt'
     torch.save(trainer.net, model_dir)
     print(model_dir)
 
