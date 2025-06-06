@@ -117,7 +117,7 @@ class Trainer:
 
         dataset = self.cifar10.test_set
         loader = self.cifar10.test_loader
-        loss, accuracy, predicts = self._test(loader, return_predicts=True)
+        loss, accuracy, predicts = self._test(loader, return_predictions=True)
 
         plt.figure(figsize=(16, 9))
         ConfusionMatrixDisplay(
@@ -129,8 +129,8 @@ class Trainer:
         plt.tight_layout()
         return plt.gcf()
 
-    def _train(self) -> tuple[list[float], list[float]]: 
-        """return losses, accuracies per LOG_INTERVAL batches"""
+    def _train(self) -> tuple[float, float]: 
+        """return loss, accuracy"""
         
         self.net.train()
         loader = self.cifar10.train_loader
@@ -150,12 +150,12 @@ class Trainer:
         accuracy = corrects.item() / len(loader.dataset)
         return loss, accuracy
         
-    def _test(self, loader: DataLoader, return_predicts=False) -> tuple[float, float, list[int] | None]: 
-        """return loss(Tensor), accuracy, optional predicts"""
+    def _test(self, loader: DataLoader, return_predictions=False) -> tuple[float, float] | tuple[float, float, list[int]]: 
+        """return loss, accuracy, optional predictions"""
 
         self.net.eval()
         running_loss = corrects = 0
-        if return_predicts:
+        if return_predictions:
             predictions = []
 
         with torch.no_grad():
@@ -165,12 +165,12 @@ class Trainer:
 
                 predicts = predicts.max(1)[1]
                 corrects += (predicts == targets).sum()
-                if return_predicts:
+                if return_predictions:
                     predictions.append(predicts)
 
         loss = running_loss.item() / len(loader)
         accuracy = corrects.item() / len(loader.dataset)
-        if return_predicts:
+        if return_predictions:
             return loss, accuracy, torch.cat(predictions).tolist()
         return loss, accuracy
 
