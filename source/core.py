@@ -62,7 +62,7 @@ class CIFAR10Helper:
 class Trainer:
     def __init__(self, net_class: type[nn.Module], cifar10: CIFAR10Helper):
         self.cifar10 = cifar10
-        self.net = net_class()
+        self.net = net_class().to(DEVICE, non_blocking=True) # TODO: check
         self.criterion = nn.CrossEntropyLoss()
         if net_class.__name__ == 'MLP':
             self.optimizer = optim.Adam(self.net.parameters())
@@ -135,8 +135,8 @@ class Trainer:
 
         for images, targets in loader:
             # TODO: check
-            images = images.to(DEVICE)
-            targets = targets.to(DEVICE)
+            images = images.to(DEVICE, non_blocking=True)
+            targets = targets.to(DEVICE, non_blocking=True)
             if not (images.is_cuda and targets.is_cuda):
                 raise Exception('no cuda')
 
@@ -164,8 +164,8 @@ class Trainer:
         with torch.no_grad():
             for images, targets in loader:
                 # TODO: check
-                images = images.to(DEVICE)
-                targets = targets.to(DEVICE)
+                images = images.to(DEVICE, non_blocking=True)
+                targets = targets.to(DEVICE, non_blocking=True)
                 if not (images.is_cuda and targets.is_cuda):
                     raise Exception('no cuda')
 
