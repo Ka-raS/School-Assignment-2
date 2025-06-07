@@ -18,6 +18,7 @@ BATCH_SIZE_TRAIN = 64
 BATCH_SIZE_TEST = 1000
 SGD_PARAMS = {'lr': 0.01, 'momentum': 0.9, 'weight_decay': 1e-3}
 SCHEDULER_PARAMS = {'mode': 'min', 'factor': 0.1, 'patience': 3}
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # TODO: check
 
 
 class CIFAR10Helper:
@@ -49,18 +50,14 @@ class CIFAR10Helper:
         ])
     
     def make_loaders(self) -> None:
-        self.train_loader, self.validation_loader, self.test_loader = [
-            DataLoader(
-                dataset,
-                batch_size,
-                shuffle
-            )
+        self.train_loader, self.validation_loader, self.test_loader = (
+            DataLoader(dataset, batch_size, shuffle, pin_memory=(DEVICE.type == 'cuda')) # TODO: check
             for dataset, batch_size, shuffle in [
                 (self.train_set, BATCH_SIZE_TRAIN, True),
                 (self.validation_set, BATCH_SIZE_TEST, False),
                 (self.test_set, BATCH_SIZE_TEST, False)
             ]
-        ]
+        )
 
 class Trainer:
     def __init__(self, net_class: type[nn.Module], cifar10: CIFAR10Helper):
@@ -117,15 +114,15 @@ class Trainer:
 
         dataset = self.cifar10.test_set
         loader = self.cifar10.test_loader
-        loss, accuracy, predicts = self._test(loader, return_predictions=True)
+        loss, accuracy, predictions = self._test(loader, return_predictions=True)
 
         plt.figure(figsize=(16, 9))
+        plt.title(f'Confusion Matrix (Loss: {loss:.4f}, Accuracy: {accuracy:.4f})')
         ConfusionMatrixDisplay(
-            confusion_matrix(dataset.targets, predicts),
+            confusion_matrix(dataset.targets, predictions),
             display_labels=dataset.classes
         ).plot(ax=plt.gca(), cmap='Blues')
         
-        plt.title(f'Confusion Matrix (Loss: {loss:.4f}, Accuracy: {accuracy:.4f})')
         plt.tight_layout()
         return plt.gcf()
 
@@ -137,6 +134,12 @@ class Trainer:
         running_loss = corrects = 0
 
         for images, targets in loader:
+            # TODO: check
+            images = images.to(DEVICE)
+            targets = targets.to(DEVICE)
+            if not (images.is_cuda and targets.is_cuda):
+                raise Exception('no cuda')
+
             self.optimizer.zero_grad()
             predicts = self.net(images)
             loss = self.criterion(predicts, targets)
@@ -150,7 +153,7 @@ class Trainer:
         accuracy = corrects.item() / len(loader.dataset)
         return loss, accuracy
         
-    def _test(self, loader: DataLoader, return_predictions=False) -> tuple[float, float] | tuple[float, float, list[int]]: 
+    def _test(self, loader: DataLoader, return_predictions=False) -> tuple[float, float] | tuple[float, float, np.ndarray]: 
         """return loss, accuracy, optional predictions"""
 
         self.net.eval()
@@ -160,10 +163,17 @@ class Trainer:
 
         with torch.no_grad():
             for images, targets in loader:
-                predicts = self.net(images)
-                running_loss += self.criterion(predicts, targets)
+                # TODO: check
+                images = images.to(DEVICE)
+                targets = targets.to(DEVICE)
+                if not (images.is_cuda and targets.is_cuda):
+                    raise Exception('no cuda')
 
+                predicts = self.net(images)
+                loss = self.criterion(predicts, targets)
                 predicts = predicts.max(1)[1]
+
+                running_loss += loss
                 corrects += (predicts == targets).sum()
                 if return_predictions:
                     predictions.append(predicts)
@@ -171,14 +181,14 @@ class Trainer:
         loss = running_loss.item() / len(loader)
         accuracy = corrects.item() / len(loader.dataset)
         if return_predictions:
-            return loss, accuracy, torch.cat(predictions).tolist()
+            return loss, accuracy, torch.cat(predictions).numpy()
         return loss, accuracy
 
 def plot_images_example(train_set: Subset[CIFAR10]) -> plt.Figure:
     """10x10 plot, each column is a class"""
 
-    rows = [0] * 10
     columns_full = 0
+    rows = np.zeros(10, dtype=int)
     fig, axes = plt.subplots(10, 10, figsize=(9, 9))
 
     for image, target in train_set:
@@ -206,7 +216,7 @@ def rgb_channels_hists(train_set: Subset[CIFAR10]) -> plt.Figure:
     data = train_set.dataset.data[train_set.indices]
     fig, axes = plt.subplots(1, 3, figsize=(16, 9), sharex=True, sharey=True)
 
-    for i, ax, color in zip(range(3), axes, ['red', 'green', 'blue']):
+    for i, ax, color in zip(range(3), axes, ('red', 'green', 'blue')):
         ax: plt.Axes
         ax.hist(data[:, :, :, i].ravel(), bins=256, color=color)
         ax.set_title(color)
