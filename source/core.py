@@ -18,7 +18,7 @@ BATCH_SIZE_TRAIN = 64
 BATCH_SIZE_TEST = 1000
 SGD_PARAMS = {'lr': 0.01, 'momentum': 0.9, 'weight_decay': 1e-3}
 SCHEDULER_PARAMS = {'mode': 'min', 'factor': 0.1, 'patience': 3}
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # TODO: check
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class CIFAR10Helper:
@@ -51,7 +51,7 @@ class CIFAR10Helper:
     
     def make_loaders(self) -> None:
         self.train_loader, self.validation_loader, self.test_loader = (
-            DataLoader(dataset, batch_size, shuffle, pin_memory=(DEVICE.type == 'cuda')) # TODO: check
+            DataLoader(dataset, batch_size, shuffle, pin_memory=(DEVICE.type == 'cuda'))
             for dataset, batch_size, shuffle in [
                 (self.train_set, BATCH_SIZE_TRAIN, True),
                 (self.validation_set, BATCH_SIZE_TEST, False),
@@ -62,7 +62,7 @@ class CIFAR10Helper:
 class Trainer:
     def __init__(self, net_class: type[nn.Module], cifar10: CIFAR10Helper):
         self.cifar10 = cifar10
-        self.net = net_class().to(DEVICE, non_blocking=True) # TODO: check
+        self.net = net_class().to(DEVICE, non_blocking=True)
         self.criterion = nn.CrossEntropyLoss()
         if net_class.__name__ == 'MLP':
             self.optimizer = optim.Adam(self.net.parameters())
@@ -134,11 +134,8 @@ class Trainer:
         running_loss = corrects = 0
 
         for images, targets in loader:
-            # TODO: check
             images = images.to(DEVICE, non_blocking=True)
             targets = targets.to(DEVICE, non_blocking=True)
-            if not (images.is_cuda and targets.is_cuda):
-                raise Exception('no cuda')
 
             self.optimizer.zero_grad()
             predicts = self.net(images)
@@ -163,11 +160,8 @@ class Trainer:
 
         with torch.no_grad():
             for images, targets in loader:
-                # TODO: check
                 images = images.to(DEVICE, non_blocking=True)
                 targets = targets.to(DEVICE, non_blocking=True)
-                if not (images.is_cuda and targets.is_cuda):
-                    raise Exception('no cuda')
 
                 predicts = self.net(images)
                 loss = self.criterion(predicts, targets)
@@ -181,7 +175,7 @@ class Trainer:
         loss = running_loss.item() / len(loader)
         accuracy = corrects.item() / len(loader.dataset)
         if return_predictions:
-            return loss, accuracy, torch.cat(predictions).numpy()
+            return loss, accuracy, torch.cat(predictions).cpu().numpy()
         return loss, accuracy
 
 def plot_images_example(train_set: Subset[CIFAR10]) -> plt.Figure:

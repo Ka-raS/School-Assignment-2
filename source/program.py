@@ -67,10 +67,6 @@ def train_validate_test(net_class: type[nn.Module], cifar10: core.CIFAR10Helper)
     plt.close('all')
 
 def run() -> None:
-    # TODO: delete
-    if not torch.cuda.is_available():
-        raise Exception('no cuda')
-
     prepare()
     print('Download CIFAR-10:')
     cifar10 = core.CIFAR10Helper(DATA_DIR)
