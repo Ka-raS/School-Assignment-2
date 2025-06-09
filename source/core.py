@@ -224,8 +224,8 @@ def rgb_mean_std(train_set: Subset[CIFAR10]) -> tuple[np.ndarray, np.ndarray, io
     """return mean, std, csv"""
 
     data = train_set.dataset.data[train_set.indices]    # (40_000, 32, 32, 3)
-    mean = np.mean(data, axis=(0,1,2))
-    std = np.std(data, axis=(0,1,2))
+    mean = data.mean((0,1,2))
+    std = data.std((0,1,2))
     normalized_mean = mean / 255
     normalized_std = std / 255
 
